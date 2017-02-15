@@ -70,7 +70,7 @@ sdir/
    the string "'sframe_i_mask[j].jpg':score(mask_j)"
 4) The sdir parameter should contain the trailing slash. 
    Eg: If sdir is ~, then set sdir = '/home/'
-5) sdir should be an empty directory in the first iteration. 
+5) sdir should be an empty directory in the first iteration. This means, when you first run the code, sdir should be empty. The program will automatically write the results to it. If you run the program multiple times, it will simply overwrite the existing results. 
 ]]
 
 -- 'm': if set to 1, we will save motion masks, otherwise we will store image masks. 
