@@ -390,7 +390,7 @@ function Infer:getTopMasks(thr,h,w, frame_file, motion_file)
 end
 
 --------------------------------------------------------------------------------
--- function: get top masks.
+-- function: get top proposals.
 
 --[[ 
 Inputs:

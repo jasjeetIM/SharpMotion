@@ -62,7 +62,7 @@ sdir/
     --> [video1_name]/
                      --> 'sframe_i'/
                                   --> {mask_1, ..., mask_n}
-                                  -->scores.txt
+                                  -->scores.cvs
 
 2) The name of "sframe_i" will be the same as the name of "frame_i" for a video. 
 3) mask_i' will be named: 'sframe_i_mask[j].jpg' where j = 1, .., 
@@ -117,8 +117,6 @@ local infer = Infer{
   dm = config.dm,
 }
 
---local pdir = popen('ls '..'/data2/jdhaliwal/Sharpmask/Berkeley/Testset/cars2/')
---    local img = image.load('/data2/jdhaliwal/Sharpmask/Davis/DAVIS/JPEGImages/480p/cows1/' .. filename)
 --------------------------------------------------------------------------------
 -- do it
 print('| start')
