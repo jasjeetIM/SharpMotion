@@ -21,12 +21,12 @@ cmd:argument('-model', 'path to model to load')
 cmd:text('Options:')
 cmd:option('-img','data/testImage.jpg' ,'path/to/test/image')
 cmd:option('-gpu', 2, 'gpu device')
-cmd:option('-np', 30,'number of proposals to save in test')
+cmd:option('-np', 100,'number of proposals to save in test')
 cmd:option('-si', -2.5, 'initial scale')
 cmd:option('-sf', .5, 'final scale')
 cmd:option('-ss', .5, 'scale step')
 cmd:option('-dm', false, 'use DeepMask version of SharpMask')
-cmd:option('-pdir', '/data2/jdhaliwal/Sharpmask/deepmask/pdir/', 'parent dir containing folders for each video') 
+cmd:option('-pdir', '/data2/jdhaliwal/Sharpmask/deepmask/pdircow/', 'parent dir containing folders for each video') 
 cmd:option('-sdir', '/data2/jdhaliwal/Sharpmask/deepmask/sdir/', 'directory to save results')
 cmd:option('-m', 1, 'motionMasks or imgMasks')
 local config = cmd:parse(arg)
@@ -153,13 +153,16 @@ for dirname in pdir:lines() do
   local pfolder = popen('ls '..pdir_path..dirname)
   --Find the motion folder
   local pmotion, err = io.open(pdir_path .. dirname..'/'..dirname..'_motion/')
+  --Error in locating motion folder, lets move to the next video. 
   if err~= nil then 
     if string.match(err, 'No such file or directory') then 
     print ("Error : no motion directory found for video: ", dirname) 
     print ("Moving onto next video...")
     end
+  -- No error in locating motion folder, lets segment. 
   else
     io.close(pmotion)
+    -- Segment frame by frame
     for filename in pfolder:lines() do  
         if filename ~= "GroundTruth" and filename ~= dirname..'_motion' then
           t = os.time()
@@ -175,7 +178,9 @@ for dirname in pdir:lines() do
           local masks,topscores = infer:getTopProps(motion,.2, h, w, filename,motion_file)
 
 
-          -- save result and write scores. We create a new scores.csv file every time and also create any directories that are required. 
+          -- save result and write scores. 
+          -- We need to create required directories
+          -- We create a new scores.csv file every time 
           local v,err = io.open(sdir_path .. dirname)
           if err~= nil then if string.match(err, "No such file or directory")  then os.execute('mkdir '..sdir_path .. dirname) end end
 	  local f, err = io.open(sdir_path..dirname..'/'..filename_dir)
@@ -188,16 +193,18 @@ for dirname in pdir:lines() do
           else 
              os.execute('rm ' .. sdir_path .. dirname ..'/'.. filename_dir ..'/' .. 'scores.csv')
              scores = io.open(sdir_path ..dirname ..'/' ..filename_dir..'/' .. 'scores.csv' , "a")
-          end 
+          end
+
+          -- Check to see if we have alteast 1 mask and 1 score. If so, proceed to write results. 
+          if topscores:sum() > 0 then
           for j=1,torch.nonzero(topscores):size(1) do
             image.save(string.format(sdir_path..dirname ..'/'..filename_dir..'/'..filename_dir .. '_mask'.. j ..'.jpg'),masks[j])
 	    scores:write(filename..'_mask'..j..'.jpg'..':'..topscores[j]..',')
-          end    
-        io.write(string.format("Masks for frame %s saved in ~ %s seconds\n",filename,os.time() - t))
+        end end
+         io.write(string.format("Masks for frame %s saved in ~ %s seconds\n",filename,os.time() - t))
 	
         -- If motion ==0, then we can save the masks on the image and write the image to disk. 
         if motion == 0 then
-		          
           local seg, err = io.open(sdir_path ..dirname ..'/' ..'segmentations/')
           if err ~= nil then 
             if string.match(err, "No such file or directory") then os.execute('mkdir ' .. sdir_path ..dirname ..'/'.. 'segmentations/') end end
