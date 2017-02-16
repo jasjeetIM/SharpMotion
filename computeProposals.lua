@@ -70,10 +70,7 @@ sdir/
    the string "'sframe_i_mask[j].jpg':score(mask_j)"
 4) The sdir parameter should contain the trailing slash. 
    Eg: If sdir is ~, then set sdir = '/home/'
-5) sdir should be an empty directory in the first iteration. 
-This means, when you first run the code, sdir should be empty. 
-The program will automatically write the results to it. 
-If you run the program multiple times, it will simply overwrite the existing results. 
+5) sdir should be an empty directory in the first iteration. This means, when you first run the code, sdir should be empty. The program will automatically write the results to it. If you run the program multiple times, it will simply overwrite the existing results. 
 ]]
 
 -- 'm': if set to 1, we will save motion masks, otherwise we will store image masks. 
@@ -176,6 +173,8 @@ for dirname in pdir:lines() do
           -- get top propsals
           local motion_file = pdir_path ..dirname..'/'..dirname..'_motion/'.. filename
           local masks,topscores = infer:getTopProps(motion,.2, h, w, filename,motion_file)
+
+
           -- save result and write scores. We create a new scores.csv file every time and also create any directories that are required. 
           local v,err = io.open(sdir_path .. dirname)
           if err~= nil then if string.match(err, "No such file or directory")  then os.execute('mkdir '..sdir_path .. dirname) end end
@@ -193,9 +192,20 @@ for dirname in pdir:lines() do
           for j=1,torch.nonzero(topscores):size(1) do
             image.save(string.format(sdir_path..dirname ..'/'..filename_dir..'/'..filename_dir .. '_mask'.. j ..'.jpg'),masks[j])
 	    scores:write(filename..'_mask'..j..'.jpg'..':'..topscores[j]..',')
-          end
+          end    
         io.write(string.format("Masks for frame %s saved in ~ %s seconds\n",filename,os.time() - t))
+	
+        -- If motion ==0, then we can save the masks on the image and write the image to disk. 
+        if motion == 0 then
+		          
+          local seg, err = io.open(sdir_path ..dirname ..'/' ..'segmentations/')
+          if err ~= nil then 
+            if string.match(err, "No such file or directory") then os.execute('mkdir ' .. sdir_path ..dirname ..'/'.. 'segmentations/') end end
+          local res = img:clone()
+	  maskApi.drawMasks(res, masks, 10)
+	  image.save(string.format(sdir_path..dirname ..'/'..'segmentations/'..filename),res)
         end
+       end
       end
       pfolder:close()
     end 
