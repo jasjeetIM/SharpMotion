@@ -124,6 +124,26 @@ print('| start')
 local pdir_path = config.pdir
 local sdir_path = config.sdir
 local t, popen = {}, io.popen
+local test, err = io.open(pdir_path)
+if err~=nil then 
+  if string.match(err, 'No such file or directory') then
+    print ("Error: 'pdir' directory does not exit") 
+    os.exit()
+  else print("Error: 'pdir' directory returned a nil value")
+  os.exit()
+  end
+end    
+
+test, err = io.open(sdir_path)
+if err~=nil then 
+  if string.match(err, 'No such file or directory') then
+    print ("Error: 'sdir' directory does not exit") 
+    os.exit()
+  else print("Error: 'sdir' directory returned a nil value")
+  os.exit()
+  end
+end    
+
 local pdir = popen('ls '..pdir_path)
 local sdir = popen('ls '..sdir_path)
 local motion = config.m
