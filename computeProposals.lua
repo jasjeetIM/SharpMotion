@@ -10,7 +10,6 @@ Run full scene inference in sample image
 require 'torch'
 require 'cutorch'
 require 'image'
-
 --------------------------------------------------------------------------------
 -- parse arguments
 local cmd = torch.CmdLine()
@@ -26,9 +25,10 @@ cmd:option('-si', -2.5, 'initial scale')
 cmd:option('-sf', .5, 'final scale')
 cmd:option('-ss', .5, 'scale step')
 cmd:option('-dm', false, 'use DeepMask version of SharpMask')
-cmd:option('-pdir', '/data2/jdhaliwal/Sharpmask/deepmask/pdircow/', 'parent dir containing folders for each video') 
+cmd:option('-pdir', '/data2/jdhaliwal/Sharpmask/deepmask/pdir/', 'parent dir containing folders for each video') 
 cmd:option('-sdir', '/data2/jdhaliwal/Sharpmask/deepmask/sdir/', 'directory to save results')
 cmd:option('-m', 1, 'motionMasks or imgMasks')
+cmd:option('jpg_masks',0,'motionMasks saved as images')
 local config = cmd:parse(arg)
 
 --[[ pdir:
@@ -64,17 +64,24 @@ sdir/
                                   --> {mask_1, ..., mask_n}
                                   -->scores.cvs
 
-2) The name of "sframe_i" will be the same as the name of "frame_i" for a video. 
-3) mask_i' will be named: 'sframe_i_mask[j].jpg' where j = 1, .., 
+2) The name of "sframe_i" will be the same as the name of "frame_i" 
+   for a video but wont include the '.jpg' extension.  
+3) 'mask_i' will be named: 'sframe_i_mask[j].csv' where j = 1, ..,
+   If you set "jpg_masks' to 1, then we will also save 'sframe_i_mask[j].jpg' for j = 1,..., 
 3) scores.csv contain comma seperated values such that each field will contain 
-   the string "'sframe_i_mask[j].jpg':score(mask_j)"
+   the string "'sframe_i_mask[j].csv':score(mask_j)"
 4) The sdir parameter should contain the trailing slash. 
    Eg: If sdir is ~, then set sdir = '/home/'
-5) sdir should be an empty directory in the first iteration. This means, when you first run the code, sdir should be empty. The program will automatically write the results to it. If you run the program multiple times, it will simply overwrite the existing results. 
+5) sdir should be an empty directory in the first iteration. 
+This means, when you first run the code, sdir should be empty. 
+The program will automatically write the results to it. If you run the program multiple 
+times, it will simply overwrite the existing results. 
+
+
+ 'm': if set to 1, we will save motion masks, otherwise we will store image masks 
+      in a 'segmentation' subdirectory
+ 'jpg_masks': set to 1 if you want to save masks as images for visualization
 ]]
-
--- 'm': if set to 1, we will save motion masks, otherwise we will store image masks. 
-
 --------------------------------------------------------------------------------
 -- various initializations
 torch.setdefaulttensortype('torch.FloatTensor')
@@ -120,7 +127,7 @@ local infer = Infer{
 --------------------------------------------------------------------------------
 -- do it
 print('| start')
-
+local csv = require('csvigo')
 local pdir_path = config.pdir
 local sdir_path = config.sdir
 local t, popen = {}, io.popen
@@ -147,7 +154,7 @@ end
 local pdir = popen('ls '..pdir_path)
 local sdir = popen('ls '..sdir_path)
 local motion = config.m
-
+local jpg_masks = config.jpg_masks
 --Loop over all the folders in the directory
 for dirname in pdir:lines() do
   local pfolder = popen('ls '..pdir_path..dirname)
@@ -198,8 +205,19 @@ for dirname in pdir:lines() do
           -- Check to see if we have alteast 1 mask and 1 score. If so, proceed to write results. 
           if topscores:sum() > 0 then
           for j=1,torch.nonzero(topscores):size(1) do
-            image.save(string.format(sdir_path..dirname ..'/'..filename_dir..'/'..filename_dir .. '_mask'.. j ..'.jpg'),masks[j])
-	    scores:write(filename..'_mask'..j..'.jpg'..':'..topscores[j]..',')
+            local t2 = {}
+	    for x=1,masks[j]:size(1) do
+  	        t2[x] = {}
+     		for y=1,masks[j]:size(2) do
+    			t2[x][y] = masks[j][x][y]
+  		end
+	    end
+            csv.save({path = string.format(sdir_path..dirname ..'/'..filename_dir..'/'..filename_dir .. '_mask'.. j ..'.csv'), data = t2, verbose=false})
+            -- Save masks as jpegs for visualization
+            if jpg_masks == 1 then 
+              image.save(string.format(sdir_path..dirname ..'/'..filename_dir..'/'..filename_dir .. '_mask'.. j ..'.jpg'),masks[j])
+	    end
+            scores:write(filename_dir..'_mask'..j..'.csv'..':'..topscores[j]..',')
         end end
          io.write(string.format("Masks for frame %s saved in ~ %s seconds\n",filename,os.time() - t))
 	
