@@ -111,7 +111,6 @@ if topscores:sum() > 0 then
     	    t2[x][y] = masks[j][x][y]
   	  end
        end
-  
     csv.save({path = string.format(res_path.. 'mask'.. j ..'.csv'), data = t2, verbose=false})
     scores:write('mask '.. j .. ':'..topscores[j]..',')
     end 

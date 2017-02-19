@@ -270,8 +270,8 @@ end
 -- function: get top masks.
 
 
-local topMasks = torch.ByteTensor()
-local imgMask = torch.ByteTensor()
+local topMasks = torch.FloatTensor()
+local imgMask = torch.FloatTensor()
 local topScoresFinal = torch.FloatTensor()
 function Infer:getTopMasks1(thr,h,w, frame_file, objects)
   thr = math.log(thr/(1-thr)) -- 1/(1+e^-s) > th => s > log(1-th)
@@ -297,9 +297,8 @@ function Infer:getTopMasks1(thr,h,w, frame_file, objects)
       local ii = math.floor((x-1)*t-delta+im)
       for jm = 0,sz- 1 do
         local jj=math.floor((y-1)*t-delta+jm)
-        if  maskPtr[sz*im + jm] > thr and
-        ii >= 0 and ii <= h-1 and jj >= 0 and jj <= w-1 then
-          imgMaskPtr[jj+ w*ii]=1
+        if ii >= 0 and ii <= h-1 and jj >= 0 and jj <= w-1 then
+          imgMaskPtr[jj+ w*ii]=maskPtr[sz*im + jm]
         end
       end
     end
